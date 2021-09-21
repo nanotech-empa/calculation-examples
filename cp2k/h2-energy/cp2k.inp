@@ -1,0 +1,54 @@
+&FORCE_EVAL
+   &DFT
+      BASIS_SET_FILE_NAME BASIS_MOLOPT
+      POTENTIAL_FILE_NAME POTENTIAL
+      &MGRID
+         CUTOFF 600
+         NGRIDS 5
+      &END MGRID
+      &QS
+         EPS_DEFAULT 1e-14
+         EXTRAPOLATION ASPC
+         EXTRAPOLATION_ORDER 3
+         METHOD GPW
+      &END QS
+      &SCF
+         EPS_SCF 1e-06
+         MAX_SCF 40
+         &OT
+            MINIMIZER CG
+            PRECONDITIONER FULL_SINGLE_INVERSE
+         &END OT
+         &OUTER_SCF
+            EPS_SCF 1e-06
+            MAX_SCF 50
+         &END OUTER_SCF
+         SCF_GUESS RESTART
+      &END SCF
+      &XC
+         &XC_FUNCTIONAL PBE
+         &END XC_FUNCTIONAL
+      &END XC
+   &END DFT
+   METHOD Quickstep
+   &SUBSYS
+      &CELL
+         ABC 6.5 5.0 5.0
+      &END CELL
+      &TOPOLOGY
+         COORD_FILE_FORMAT XYZ
+         COORD_FILE_NAME coords.xyz
+      &END TOPOLOGY
+      &KIND H
+         BASIS_SET TZV2P-MOLOPT-GTH
+         POTENTIAL GTH-PBE-q1
+      &END KIND
+   &END SUBSYS
+&END FORCE_EVAL
+&GLOBAL
+   EXTENDED_FFT_LENGTHS 
+   PRINT_LEVEL MEDIUM
+   PROJECT aiida
+   RUN_TYPE ENERGY
+   WALLTIME 600
+&END GLOBAL
