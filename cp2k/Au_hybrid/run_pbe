@@ -1,0 +1,35 @@
+#!/bin/bash
+#SBATCH --no-requeue
+#SBATCH --job-name="aiida-2682"
+#SBATCH --get-user-env
+#SBATCH --output=_scheduler-stdout.txt
+#SBATCH --error=_scheduler-stderr.txt
+#SBATCH --nodes=16
+#SBATCH --ntasks-per-node=12
+#SBATCH --cpus-per-task=1
+#SBATCH --time=02:30:00
+
+#SBATCH --partition=normal
+#SBATCH --account=s904
+#SBATCH --constraint=gpu
+export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK:-1}
+source $MODULESHOME/init/bash
+ulimit -s unlimited
+export CRAY_CUDA_MPS=1
+
+
+module unload CP2K/7.1-CrayGNU-20.11-cuda ELPA/2019.11.001-CrayGNU-20.11-cuda
+module load daint-gpu
+module load CP2K/8.1-CrayGNU-20.11-cuda
+
+
+EXE=cp2k.psmp
+
+#======START=====
+
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+
+NAME=Au_CS_PBE
+srun $EXE -i $NAME.inp > $NAME.out
+
+

@@ -1,0 +1,249 @@
+@SET PROJECT Au_CS_pbe
+@SET RESFILE  Au_CS_pbe
+@SET SCRDIR   /scratch/snx3000/dpassero
+@SET INPDIR   ${SCRDIR}/hybrid_Au
+@SET WRKDIR   ${INPDIR}/hybrid_Au
+@SET XYZ      ${INPDIR}/CS_thin.xyz 
+@SET RESTART  0
+@SET HESSIAN  0
+@SET WALLTIME  80000
+##@SET CELL_A   40
+@SET RUNTYPE  ENERGY
+@SET OT_MINI DIIS
+@SET EPSSCF   1.00E-07
+@SET GUESS RESTART
+@SET DIAG 1
+@SET OT 0
+
+&GLOBAL
+   PROJECT  ${PROJECT}
+   RUN_TYPE ${RUNTYPE}
+   IOLEVEL  MEDIUM
+   WALLTIME ${WALLTIME}
+   PREFERRED_DIAG_LIBRARY  ELPA
+   FLUSH_SHOULD_FLUSH T
+&END GLOBAL
+
+&FORCE_EVAL
+   METHOD QS
+   &DFT
+      BASIS_SET_FILE_NAME     BASIS_MOLOPT
+      POTENTIAL_FILE_NAME     GTH_POTENTIALS
+      BASIS_SET_FILE_NAME     BASIS_ADMM_MOLOPT
+      BASIS_SET_FILE_NAME     BASIS_ADMM
+      WFN_RESTART_FILE_NAME   ${RESFILE}-RESTART.wfn
+!	SPIN_POLARIZED
+##	MULTIPLICITY 1
+      &QS
+         EXTRAPOLATION  ASPC
+         EXTRAPOLATION_ORDER     4
+      &END QS
+      &SCF
+@if ${OT} == 1
+         MAX_SCF    20
+         EPS_SCF    ${EPSSCF}
+         SCF_GUESS  ${GUESS}
+         &OT  T
+            MINIMIZER  ${OT_MINI}
+            PRECONDITIONER  FULL_ALL
+            ENERGY_GAP 1E-2
+         &END OT
+         &OUTER_SCF
+            MAX_SCF    50
+            EPS_SCF    ${EPSSCF}
+         &END
+@endif
+@if ${DIAG} == 1
+         MAX_SCF    400
+         SCF_GUESS  ${GUESS}
+         ADDED_MOS  200
+         CHOLESKY INVERSE_DBCSR
+         EPS_SCF ${EPSSCF}
+        &SMEAR  ON
+          METHOD FERMI_DIRAC
+          ELECTRONIC_TEMPERATURE [K] 50
+        &END SMEAR
+        &DIAGONALIZATION
+           ALGORITHM STANDARD
+           EPS_ADAPT 0.01
+        &END DIAGONALIZATION
+        &MIXING
+          METHOD BROYDEN_MIXING
+          ALPHA   0.1
+          BETA    1.5
+          NBROYDEN  8
+        &END
+@endif
+      &END SCF
+      &MGRID
+         CUTOFF 600
+         REL_CUTOFF 50
+         NGRIDS 6
+      &END
+
+
+      &XC
+
+	&VDW_POTENTIAL
+	  POTENTIAL_TYPE   NON_LOCAL
+	  &NON_LOCAL
+            CUTOFF 300.
+	    KERNEL_FILE_NAME rVV10_kernel_table.dat
+	    TYPE RVV10
+	   &END 
+	&END
+
+
+        &XC_FUNCTIONAL 
+          &PBE
+          &END PBE
+        &END XC_FUNCTIONAL
+
+
+      &END XC
+  
+      &POISSON
+          PERIODIC XYZ
+      &END
+   
+       &PRINT
+         &MULLIKEN
+           FILENAME =${PROJECT}.mulliken
+         &END
+
+##         &PDOS
+#          NLUMO 50
+#          COMPONENTS
+#
+#          &LDOS
+#            COMPONENTS
+#            LIST 1..67
+#          &END
+#          &LDOS
+#            COMPONENTS
+#            LIST 68..214
+#          &END
+#
+#         &END
+
+       &E_DENSITY_CUBE
+         &EACH
+          QS_SCF 0
+         &END
+         ADD_LAST NUMERIC
+       &END
+
+       &MO_CUBES
+          NHOMO 10
+          NLUMO 10
+       &END
+
+      &END PRINT
+
+   &END DFT
+
+   &SUBSYS
+      &CELL
+         A 61.907976 0.000000 0.000000
+         B 0.000000 30.636503 0.000000
+         C 0.000000 0.000000 18.118239
+         PERIODIC XYZ
+         SYMMETRY ORTHORHOMBIC
+      &END CELL
+      &TOPOLOGY
+         CONNECTIVITY OFF
+         COORD_FILE_NAME ${XYZ}
+         COORDINATE      xyz
+      &END TOPOLOGY
+ 
+    
+      &KIND Au
+         BASIS_SET DZVP-MOLOPT-SR-GTH
+         POTENTIAL GTH-PBE-q11
+      &END KIND
+  
+    
+    &KIND H
+      BASIS_SET TZV2P-MOLOPT-GTH
+      POTENTIAL GTH-PBE-q1
+    &END KIND
+
+    &KIND C
+      BASIS_SET TZV2P-MOLOPT-GTH
+      POTENTIAL GTH-PBE-q4
+    &END KIND
+
+    &KIND Cl
+      BASIS_SET TZV2P-MOLOPT-GTH
+      POTENTIAL GTH-PBE-q7
+    &END KIND
+
+    &KIND N
+      BASIS_SET TZV2P-MOLOPT-GTH
+      POTENTIAL GTH-PBE-q5
+    &END KIND
+   
+      &KIND B
+         BASIS_SET DZVP-MOLOPT-SR-GTH
+         POTENTIAL GTH-PBE-q3
+      &END KIND
+
+    &KIND O
+      BASIS_SET TZV2P-MOLOPT-GTH
+      POTENTIAL GTH-PBE-q6
+     &END KIND
+
+    &KIND S
+      BASIS_SET TZV2P-MOLOPT-GTH
+      POTENTIAL GTH-PBE-q6
+    &END
+
+
+   &END SUBSYS
+&END FORCE_EVAL
+
+&MOTION
+   &GEO_OPT
+      TYPE MINIMIZATION
+      MAX_ITER 300
+      OPTIMIZER BFGS
+      &BFGS
+@if ${HESSIAN} == 1
+
+      RESTART_HESSIAN
+      RESTART_FILE_NAME ${PROJECT}-BFGS.Hessian
+@endif
+
+      &END
+   &END GEO_OPT
+   &PRINT
+      &TRAJECTORY
+      &END TRAJECTORY
+##      &FORCES
+##       UNIT eV*angstrom^-1
+##      &END
+      &RESTART
+        &EACH
+          GEO_OPT 1
+        &END
+      &END
+      &RESTART_HISTORY
+        &EACH
+          GEO_OPT 100
+        &END
+      &END
+   &END PRINT
+&END MOTION
+
+@if ${RESTART} == 1
+&EXT_RESTART
+   RESTART_FILE_NAME ${RESFILE}-1.restart
+   RESTART_DEFAULT T
+   RESTART_COUNTERS T
+   RESTART_POS T
+   RESTART_CELL T
+&END EXT_RESTART
+@endif
+
+
+
